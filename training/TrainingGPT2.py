@@ -52,6 +52,21 @@ def train(model, target_tensor, criterion, optimizer):
     return loss.item() / len(target_tensor)
 
 
-train(model, enc.encode(post)[:100], criterion, optimizer)
+def train_iterations(model, target_tensors, criterion, optimizer, print_every=1):
+
+    print_total_loss = 0
+
+    for iteration in range(len(target_tensors)):
+        print("{}/{}".format(iteration, len(target_tensors)))
+        post = target_tensors[iteration]
+        target_tensor = enc.encode(post[:10])
+        loss = train(model, target_tensor, criterion, optimizer)
+        print_total_loss += loss
+
+        if iteration % print_every:
+            print("Loss: {}".format(print_total_loss / print_every))
+            print_total_loss = 0
+
+
+train_iterations(model, posts, criterion, optimizer)
 print("Training has ended.")
-# print(len(enc.encode(post)[:150]))
