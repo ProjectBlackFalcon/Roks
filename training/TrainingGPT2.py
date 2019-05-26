@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from tqdm import trange
 from DataGenerator import get_disk_posts
+import os
 
 # GPT-2 tokenizer with byte-pair encoding
 enc = GPT2Tokenizer.from_pretrained("gpt2")
@@ -52,7 +53,7 @@ def train(model, target_tensor, criterion, optimizer):
     optimizer.zero_grad()
 
     # Iterate over every token
-    for i in trange(1, len(target_tensor)):
+    for i in range(1, len(target_tensor)):
         # Define the part of the sentence which will be used as the context
         context_tokens = target_tensor[:i]
         # Create a tensor and adapt it to the model accepted shape
@@ -75,7 +76,7 @@ def train(model, target_tensor, criterion, optimizer):
     return loss.item() / len(target_tensor)
 
 
-def train_iterations(model, target_tensors, criterion, optimizer, print_every=1):
+def train_iterations(model, target_tensors, criterion, optimizer, epochs, print_every=1, save_every=1):
     """
     Trains the model with every document
     :param model: Actual GPT-2 model
@@ -85,19 +86,46 @@ def train_iterations(model, target_tensors, criterion, optimizer, print_every=1)
     :param print_every: Every m iteration the average loss will be printed
     :return:
     """
-    print_total_loss = 0
-    # Iterate through every example and print the loss when necessary
-    for iteration in range(len(target_tensors)):
-        print("{}/{}".format(iteration, len(target_tensors)))
-        post = target_tensors[iteration]
-        target_tensor = enc.encode(post[:10])
-        loss = train(model, target_tensor, criterion, optimizer)
-        print_total_loss += loss
 
-        if iteration % print_every:
-            print("Loss: {}".format(print_total_loss / print_every))
-            print_total_loss = 0
+    epoch = 0
+    loss = 0
+    iteration = 0
+
+    checkpoints = sorted(os.listdir("checkpoints"))
+    if len(checkpoints) > 0:
+        checkpoint = checkpoints[len(checkpoints) - 1]
+        checkpoint = torch.load("checkpoints/{}".format(checkpoint))
+        model.load_state_dict(checkpoint["model_state_dict"])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        epoch = checkpoint['epoch']
+        loss = checkpoint['loss']
+        iteration = checkpoint['iteration']
+        print("File found. Loading at epoch {} and iterationc {}".format(epoch, iteration))
+    else:
+        print("No checkpoint found.")
+
+    for e in trange(epoch, epochs):
+        print_total_loss = loss
+        # Iterate through every example and print the loss when necessary
+        for iteration in range(iteration, len(target_tensors)):
+            post = target_tensors[iteration]
+            target_tensor = enc.encode(post[:10])
+            loss = train(model, target_tensor, criterion, optimizer)
+            print_total_loss += loss
+
+            if iteration % print_every == 0:
+                print("{}/{}, Loss: {}".format(iteration, len(target_tensors), print_total_loss / print_every))
+                print_total_loss = 0
+
+            if iteration % save_every == 0:
+                torch.save({
+                   'epoch': e,
+                   'model_state_dict': model.state_dict(),
+                   "optimizer_state_dict": optimizer.state_dict(),
+                   'loss': loss,
+                   "iteration": iteration
+                }, "checkpoints/gpt2_e-{}_i-{}.pt".format(e, iteration))
 
 
-train_iterations(model, posts, criterion, optimizer)
+train_iterations(model, posts, criterion, optimizer, 2)
 print("Training has ended.")
