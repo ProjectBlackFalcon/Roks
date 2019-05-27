@@ -9,9 +9,13 @@ import os
 # GPT-2 tokenizer with byte-pair encoding
 enc = GPT2Tokenizer.from_pretrained("gpt2")
 
+# Choose device
+device = 'cuda'
+
 # Pre-trained models with weights trained on WebText
 model = GPT2LMHeadModel.from_pretrained("gpt2")
 model.eval()
+model.to(device)
 
 # Fetching data scraped from elsewhere
 posts = get_disk_posts()
@@ -57,7 +61,7 @@ def train(model, target_tensor, criterion, optimizer):
         # Define the part of the sentence which will be used as the context
         context_tokens = target_tensor[:i]
         # Create a tensor and adapt it to the model accepted shape
-        context = torch.tensor(context_tokens, dtype=torch.long).unsqueeze(0).repeat(batch_size, 1)
+        context = torch.tensor(context_tokens, device=device, dtype=torch.long).unsqueeze(0).repeat(batch_size, 1)
         # Obtain the prediction from the model
         logits, _ = model(context, past=None)
         # Temperature dictates the certainty with which the model makes predictions
@@ -65,7 +69,7 @@ def train(model, target_tensor, criterion, optimizer):
         # Gives a probability score to each predicted token; sum = 1
         log_probs = F.log_softmax(logits, dim=1)
         # Cast the target to tensor so it can be used in the criterion
-        singular_target_tensor = torch.tensor([target_tensor[i]])
+        singular_target_tensor = torch.tensor([target_tensor[i]], device=device)
 
         # Calculate the loss using the probabilities compared to the expected output
         loss += criterion(log_probs, singular_target_tensor)
@@ -127,5 +131,5 @@ def train_iterations(model, target_tensors, criterion, optimizer, epochs, print_
                 }, "checkpoints/gpt2_e-{}_i-{}.pt".format(e, iteration))
 
 
-train_iterations(model, posts, criterion, optimizer, 2)
+train_iterations(model, posts, criterion, optimizer, 2, save_every=1000)
 print("Training has ended.")
