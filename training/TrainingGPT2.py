@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from tqdm import trange
 from DataGenerator import get_disk_posts
 import os
+from Validate import output_sentence
 
 # Choose device
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -133,5 +134,7 @@ def train_iterations(model, target_tensors, criterion, optimizer, epochs, print_
                 }, "checkpoints/gpt2_e-{}_i-{}.pt".format(e, iteration))
 
 
-train_iterations(model, posts, criterion, optimizer, 2)
+train_iterations(model, posts, criterion, optimizer, 100)
 print("Training has ended.")
+
+print(output_sentence(model, context_string='This'))
