@@ -52,15 +52,14 @@ def train(model, target_tensor, criterion, optimizer):
     loss = 0
     optimizer.zero_grad()
 
-    # Create a tensor and adapt it to the model accepted shape
-    context = torch.tensor(target_tensor, dtype=torch.long).unsqueeze(0).repeat(batch_size, 1)
-
     # Iterate over every token
     for i in range(1, len(target_tensor)):
         # Define the part of the sentence which will be used as the context
-        context_tokens = context[:i]
+        context_tokens = target_tensor[:i]
+        # Create a tensor and adapt it to the model accepted shape
+        context = torch.tensor(context_tokens, dtype=torch.long).unsqueeze(0).repeat(batch_size, 1)
         # Obtain the prediction from the model
-        logits, _ = model(context_tokens, past=None)
+        logits, _ = model(context, past=None)
         # Temperature dictates the certainty with which the model makes predictions
         logits = logits[:, -1, :] / temperature
         # Gives a probability score to each predicted token; sum = 1
