@@ -6,11 +6,15 @@ from tqdm import trange
 from DataGenerator import get_disk_posts
 import os
 
+# Choose device
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
 # GPT-2 tokenizer with byte-pair encoding
 enc = GPT2Tokenizer.from_pretrained("gpt2")
 
 # Pre-trained models with weights trained on WebText
 model = GPT2LMHeadModel.from_pretrained("gpt2")
+model.to(device)
 model.eval()
 
 # Fetching data scraped from elsewhere
@@ -53,7 +57,7 @@ def train(model, target_tensor, criterion, optimizer):
     optimizer.zero_grad()
 
     # Create a tensor and adapt it to the model accepted shape
-    context = torch.tensor(target_tensor, dtype=torch.long).unsqueeze(0).repeat(batch_size, 1)
+    context = torch.tensor(target_tensor, device=device, dtype=torch.long).unsqueeze(0).repeat(batch_size, 1)
 
     # Iterate over every token
     for i in range(1, len(target_tensor)):
@@ -66,7 +70,7 @@ def train(model, target_tensor, criterion, optimizer):
         # Gives a probability score to each predicted token; sum = 1
         log_probs = F.log_softmax(logits, dim=1)
         # Cast the target to tensor so it can be used in the criterion
-        singular_target_tensor = torch.tensor([target_tensor[i]])
+        singular_target_tensor = torch.tensor([target_tensor[i]], device=device)
 
         # Calculate the loss using the probabilities compared to the expected output
         loss += criterion(log_probs, singular_target_tensor)
