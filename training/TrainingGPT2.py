@@ -18,7 +18,7 @@ model.to(device)
 model.eval()
 
 # Fetching data scraped from elsewhere
-posts = get_disk_posts()
+posts = get_disk_posts(True)
 post = posts[0]
 
 # Using the negative log likelihood loss function
@@ -70,7 +70,8 @@ def train(model, target_tensor, criterion, optimizer):
         # Gives a probability score to each predicted token; sum = 1
         log_probs = F.log_softmax(logits, dim=1)
         # Cast the target to tensor so it can be used in the criterion
-        singular_target_tensor = torch.tensor([target_tensor[i]], device=device)
+        singular_target_tensor = torch.tensor([target_tensor[i]], device=device
+                                              )
 
         # Calculate the loss using the probabilities compared to the expected output
         loss += criterion(log_probs, singular_target_tensor)
