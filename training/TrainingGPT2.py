@@ -29,10 +29,10 @@ criterion = nn.NLLLoss()
 param_optimizer = list(model.named_parameters())
 no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
 optimizer_grouped_parameters = [
-    {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
+    {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 6e-6},
     {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
 ]
-optimizer = OpenAIAdam(optimizer_grouped_parameters, lr=0.9)
+optimizer = OpenAIAdam(optimizer_grouped_parameters, lr=6e-5)
 
 # Hyper-parameters
 batch_size = 1
@@ -137,4 +137,4 @@ def train_iterations(model, target_tensors, criterion, optimizer, epochs, print_
 train_iterations(model, posts, criterion, optimizer, 100)
 print("Training has ended.")
 
-print(output_sentence(model, context_string='This'))
+print(output_sentence(model, context_string='This', device=device))
