@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from tqdm import trange
-from DataGenerator import get_disk_posts
+from DataGenerator import get_disk_posts, get_tensors_from_tokens, read_tokens
 from Validate import output_sentence
 from dotenv import load_dotenv
 import os
@@ -176,6 +176,11 @@ def train_iterations(model, target_tensors, criterion, optimizer, epochs, print_
                    "iteration": iteration
                 }, "checkpoints/gpt2_e-{}_i-{}.pt".format(e, iteration))
 
+
+tokens = read_tokens("tokens_512")
+target_tensors = [get_tensors_from_tokens(token) for token in tokens]
+
+print(target_tensors)
 
 
 # print(output_sentence(model, context_string='This', device=device))
