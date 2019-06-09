@@ -1,3 +1,5 @@
 /venv
 /.idea
-/data/posts.txt
+/data/*.txt
+/data/clean_posts.txt
+.env

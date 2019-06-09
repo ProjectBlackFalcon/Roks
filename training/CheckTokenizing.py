@@ -11,10 +11,11 @@ for index, post in enumerate(posts):
         try:
             enc.encode(word)
         except KeyError:
+            print("Failed on", word)
             posts[index] = ''.join(posts[index].split(word))
     print(index, len(posts))
 
-with open('posts.txt', 'w+', encoding="utf-8") as file:
+with open('clean_posts.txt', 'w+', encoding="utf-8") as file:
     file.write('\n'.join(posts))
 
 print("Done")
