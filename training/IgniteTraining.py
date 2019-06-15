@@ -155,7 +155,7 @@ if __name__ == "__main__":
     parser.add_argument('--epochs', type=int, default=10,
                         help='number of epochs to train (default: 10)')
     parser.add_argument('--lr', type=float, default=0.01,
-                        help='learning rate (default: 0.01)')
+                        help='learning rate (default: 0.3)')
     parser.add_argument('--momentum', type=float, default=0.5,
                         help='SGD momentum (default: 0.5)')
     parser.add_argument('--log_interval', type=int, default=10,
