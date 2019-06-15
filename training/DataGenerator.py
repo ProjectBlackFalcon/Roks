@@ -37,7 +37,7 @@ class PostsDataset(Dataset):
     def __init__(self, tokenizer, cache=None, max_context_length=512):
         if cache:
             with open('../data/{}.txt'.format(cache), 'r', encoding="utf-8") as file:
-                self.posts = file.read()
+                self.posts = list(map(int, file.read().split("|")))
         else:
             posts = get_disk_posts(clean=True)
             tokenized_posts = tokenizer.tokenize(posts)
@@ -47,7 +47,7 @@ class PostsDataset(Dataset):
 
     def save_to_cache(self, cache):
         with open('../data/{}.txt'.format(cache), 'w+', encoding="utf-8") as file:
-            file.write(str(self.posts))
+            file.write(str('|'.join(str(post) for post in self.posts)))
 
     def __len__(self):
         print(len(self.posts))
@@ -58,7 +58,8 @@ class PostsDataset(Dataset):
 
 
 def get_data_loaders(tokenizer, train_batch_size, val_batch_size, validation_split=0.2, random_seed=0):
-    dataset = PostsDataset(tokenizer, cache='dataset_cache')
+    dataset = PostsDataset(tokenizer, cache="dataset_cache")
+    print("Saved to cache")
     dataset_size = len(dataset)
 
     indices = list(range(dataset_size))
@@ -73,5 +74,7 @@ def get_data_loaders(tokenizer, train_batch_size, val_batch_size, validation_spl
 
     train_loader = DataLoader(dataset, batch_size=train_batch_size, sampler=train_sampler)
     val_loader = DataLoader(dataset, batch_size=val_batch_size, sampler=valid_sampler)
+
+    print("Returning data")
 
     return train_loader, val_loader
