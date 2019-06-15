@@ -6,8 +6,7 @@ import numpy as np
 
 def get_disk_posts(clean=False, irrelevant=False):
     with open("../data/{}posts.txt".format("clean_" if clean else "irrelevant_" if irrelevant else ""), encoding="utf-8") as reader:
-        data = reader.read().split("\n")
-    return data
+        return reader.read()
 
 
 def save_data(data, data_name, append=False):
@@ -35,18 +34,31 @@ def get_tensors_from_tokens(tokens, max_size=512):
 
 
 class PostsDataset(Dataset):
-    def __init__(self):
-        self.posts = get_disk_posts(clean=True)
+    def __init__(self, tokenizer, cache=None, max_context_length=512):
+        if cache:
+            with open('../data/{}.txt'.format(cache), 'r', encoding="utf-8") as file:
+                self.posts = file.read()
+        else:
+            posts = get_disk_posts(clean=True)
+            tokenized_posts = tokenizer.tokenize(posts)
+            self.posts = tokenizer.convert_tokens_to_ids(tokenized_posts)
+
+        self.max_context_length = max_context_length
+
+    def save_to_cache(self, cache):
+        with open('../data/{}.txt'.format(cache), 'w+', encoding="utf-8") as file:
+            file.write(str(self.posts))
 
     def __len__(self):
-        return len(self.posts)
+        print(len(self.posts))
+        return len(self.posts) - self.max_context_length
 
     def __getitem__(self, item):
-        return self.posts[item]
+        return self.posts[item:item+self.max_context_length]
 
 
-def get_data_loaders(train_batch_size, val_batch_size, validation_split=0.2, random_seed=0):
-    dataset = PostsDataset()
+def get_data_loaders(tokenizer, train_batch_size, val_batch_size, validation_split=0.2, random_seed=0):
+    dataset = PostsDataset(tokenizer, cache='dataset_cache')
     dataset_size = len(dataset)
 
     indices = list(range(dataset_size))
@@ -59,7 +71,7 @@ def get_data_loaders(train_batch_size, val_batch_size, validation_split=0.2, ran
     train_sampler = SubsetRandomSampler(train_indices)
     valid_sampler = SubsetRandomSampler(val_indices)
 
-    train_loader = DataLoader(dataset, batch_size=train_batch_size, sampler=train_sampler, shuffle=True)
-    val_loader = DataLoader(dataset, batch_size=val_batch_size, sampler=valid_sampler, shuffle=True)
+    train_loader = DataLoader(dataset, batch_size=train_batch_size, sampler=train_sampler)
+    val_loader = DataLoader(dataset, batch_size=val_batch_size, sampler=valid_sampler)
 
     return train_loader, val_loader
