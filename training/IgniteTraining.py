@@ -11,6 +11,7 @@ from tqdm import tqdm, trange
 tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 model = GPT2LMHeadModel.from_pretrained("gpt2")
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+model.to(device)
 
 
 def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, filter_value=-float('Inf')):
