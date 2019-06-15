@@ -3,3 +3,4 @@
 /data/*.txt
 /data/clean_posts.txt
 .env
+/self_training

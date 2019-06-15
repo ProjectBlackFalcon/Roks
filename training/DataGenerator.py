@@ -51,15 +51,14 @@ class PostsDataset(Dataset):
 
     def __len__(self):
         print(len(self.posts))
-        return len(self.posts) - self.max_context_length
+        return len(self.posts) - self.max_context_length - 1
 
     def __getitem__(self, item):
-        return self.posts[item:item+self.max_context_length]
+        return torch.tensor(self.posts[item:item+self.max_context_length]), self.posts[item+self.max_context_length]
 
 
 def get_data_loaders(tokenizer, train_batch_size, val_batch_size, validation_split=0.2, random_seed=0):
     dataset = PostsDataset(tokenizer, cache="dataset_cache")
-    print("Saved to cache")
     dataset_size = len(dataset)
 
     indices = list(range(dataset_size))
