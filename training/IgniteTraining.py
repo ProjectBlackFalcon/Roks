@@ -69,7 +69,7 @@ def sample_sequence(model, length=-1, context=None, temperature=1.0):
             output = torch.cat((output, prev), dim=1)
 
     output = output[0].tolist()
-    output = list(filter(lambda token: token != 50256, output))
+    output = tokenizer.decode(list(filter(lambda token: token != 50256, output)))
     return output
 
 
