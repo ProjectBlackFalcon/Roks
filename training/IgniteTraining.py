@@ -1,12 +1,16 @@
+import os
 from argparse import ArgumentParser
 import torch
 import torch.nn.functional as F
 import math
+from pprint import pformat
 from DataGenerator import get_data_loaders
-from pytorch_pretrained_bert import GPT2Tokenizer, GPT2LMHeadModel, OpenAIAdam
+from pytorch_pretrained_bert import GPT2Tokenizer, GPT2LMHeadModel, OpenAIAdam, CONFIG_NAME
+from ignite.handlers import ModelCheckpoint
 from ignite.engine import Events, Engine
 from ignite.metrics import Accuracy, Loss, MetricsLambda
-from ignite.contrib.handlers import PiecewiseLinear
+from ignite.contrib.handlers import PiecewiseLinear, ProgressBar
+from ignite.contrib.handlers.tensorboard_logger import TensorboardLogger, OutputHandler, OptimizerParamsHandler
 from tqdm import tqdm, trange
 
 tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
@@ -69,7 +73,7 @@ def sample_sequence(model, length=-1, context=None, temperature=1.0):
     return output
 
 
-def run(train_batch_size, val_batch_size, epochs, log_interval):
+def run(train_batch_size, val_batch_size, epochs, log_interval, lr):
     train_loader, val_loader = get_data_loaders(tokenizer, train_batch_size, val_batch_size)
 
     optimizer = OpenAIAdam(model.parameters(), lr=6.25e-5)
@@ -102,7 +106,7 @@ def run(train_batch_size, val_batch_size, epochs, log_interval):
     evaluator = Engine(inference)
 
     # Linearly decrease the learning rate from lr to zero
-    scheduler = PiecewiseLinear(optimizer, "lr", [(0, args.lr), (args.n_epochs * len(train_loader), 0.0)])
+    scheduler = PiecewiseLinear(optimizer, "lr", [(0, lr), (epochs * len(train_loader), 0.0)])
     trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
 
     for name, metric in metrics.items():
@@ -148,6 +152,24 @@ def run(train_batch_size, val_batch_size, epochs, log_interval):
 
         pbar.n = pbar.last_print_n = 0
 
+    tb_logger = TensorboardLogger(None)
+    tb_logger.attach(trainer, log_handler=OutputHandler(tag="training", metric_names=["loss"]),
+                     event_name=Events.ITERATION_COMPLETED)
+    tb_logger.attach(trainer, log_handler=OptimizerParamsHandler(optimizer), event_name=Events.ITERATION_STARTED)
+
+    @evaluator.on(Events.COMPLETED)
+    def tb_log_metrics(engine):
+        for name in metrics.keys():
+            tb_logger.writer.add_scalar(name, engine.state.metrics[name], trainer.state.iteration)
+
+    checkpoint_handler = ModelCheckpoint(tb_logger.writer.log_dir, 'checkpoint', save_interval=1, n_saved=3)
+    trainer.add_event_handler(Events.EPOCH_COMPLETED, checkpoint_handler, {
+        'mymodel': getattr(model, 'module', model)})  # "getattr" take care of distributed encapsulation
+
+    torch.save(args, tb_logger.writer.log_dir + '/model_training_args.bin')
+    getattr(model, 'module', model).config.to_json_file(os.path.join(tb_logger.writer.log_dir, CONFIG_NAME))
+    tokenizer.save_vocabulary(tb_logger.writer.log_dir)
+
     trainer.run(train_loader, max_epochs=epochs)
     pbar.close()
 
@@ -170,5 +192,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # sample_sequence(model, length=10)
-    run(args.batch_size, args.val_batch_size, args.epochs, args.log_interval)
+    run(args.batch_size, args.val_batch_size, args.epochs, args.log_interval, args.lr)
 
