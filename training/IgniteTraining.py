@@ -6,6 +6,7 @@ from DataGenerator import get_data_loaders
 from pytorch_pretrained_bert import GPT2Tokenizer, GPT2LMHeadModel, OpenAIAdam
 from ignite.engine import Events, Engine
 from ignite.metrics import Accuracy, Loss, MetricsLambda
+from ignite.contrib.handlers import PiecewiseLinear
 from tqdm import tqdm, trange
 
 tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
@@ -99,6 +100,10 @@ def run(train_batch_size, val_batch_size, epochs, log_interval):
 
     trainer = Engine(update)
     evaluator = Engine(inference)
+
+    # Linearly decrease the learning rate from lr to zero
+    scheduler = PiecewiseLinear(optimizer, "lr", [(0, args.lr), (args.n_epochs * len(train_loader), 0.0)])
+    trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
 
     for name, metric in metrics.items():
         metric.attach(evaluator, name)
