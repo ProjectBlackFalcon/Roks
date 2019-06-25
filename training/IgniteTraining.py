@@ -170,6 +170,7 @@ def run(train_batch_size, val_batch_size, epochs, log_interval, lr):
     getattr(model, 'module', model).config.to_json_file(os.path.join(tb_logger.writer.log_dir, CONFIG_NAME))
     tokenizer.save_vocabulary(tb_logger.writer.log_dir)
 
+    print(sample_sequence(model, length=20))
     trainer.run(train_loader, max_epochs=epochs)
     pbar.close()
 
@@ -182,8 +183,8 @@ if __name__ == "__main__":
                         help='input batch size for validation (default: 32)')
     parser.add_argument('--epochs', type=int, default=10,
                         help='number of epochs to train (default: 10)')
-    parser.add_argument('--lr', type=float, default=0.01,
-                        help='learning rate (default: 0.3)')
+    parser.add_argument('--lr', type=float, default=6.25e-5,
+                        help='learning rate (default: 6.25e-5)')
     parser.add_argument('--momentum', type=float, default=0.5,
                         help='SGD momentum (default: 0.5)')
     parser.add_argument('--log_interval', type=int, default=10,
