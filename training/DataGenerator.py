@@ -37,7 +37,7 @@ class PostsDataset(Dataset):
     def __init__(self, tokenizer, cache=None, max_context_length=512, device='cpu'):
         if cache:
             with open('../data/{}.txt'.format(cache), 'r', encoding="utf-8") as file:
-                self.posts = list(map(int, file.read().split("|")))[:520]
+                self.posts = list(map(int, file.read().split("|")))[:550]
         else:
             posts = get_disk_posts(clean=True)
             tokenized_posts = tokenizer.tokenize(posts)
@@ -55,7 +55,10 @@ class PostsDataset(Dataset):
         return len(self.posts) - self.max_context_length - 1
 
     def __getitem__(self, item):
-        return torch.tensor(self.posts[item:item+self.max_context_length]), self.posts[item+self.max_context_length]
+        return (
+            torch.tensor(self.posts[item:item+self.max_context_length]),
+            torch.tensor(self.posts[item+1:item+self.max_context_length+1])
+        )
 
 
 def get_data_loaders(tokenizer, train_batch_size, val_batch_size, validation_split=0.2, random_seed=0):

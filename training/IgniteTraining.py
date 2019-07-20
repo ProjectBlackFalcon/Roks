@@ -188,7 +188,8 @@ if __name__ == "__main__":
     parser.add_argument('--momentum', type=float, default=0.5,
                         help='SGD momentum (default: 0.5)')
     parser.add_argument('--log_interval', type=int, default=10,
-                        help='how many batches to wait before logging training status')
+                        help='how ma'
+                             'ny batches to wait before logging training status')
 
     args = parser.parse_args()
 
