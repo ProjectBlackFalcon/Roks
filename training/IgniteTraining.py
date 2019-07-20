@@ -51,7 +51,7 @@ def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, filter_value=-float('Inf')
     return logits
 
 
-def sample_sequence(model, length=-1, context=None, temperature=1.0):
+def sample_sequence(model, tokenizer, device, length=10, context=None, temperature=1.0):
     if context is not None:
         context = tokenizer.encode(context)
         context = torch.tensor(context, device=device, dtype=torch.long).unsqueeze(0)

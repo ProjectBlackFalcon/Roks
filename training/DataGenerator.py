@@ -34,10 +34,10 @@ def get_tensors_from_tokens(tokens, max_size=512):
 
 
 class PostsDataset(Dataset):
-    def __init__(self, tokenizer, cache=None, max_context_length=512, device='cpu'):
+    def __init__(self, tokenizer, cache=None, max_context_length=512, device='cpu', step=None):
         if cache:
             with open('../data/{}.txt'.format(cache), 'r', encoding="utf-8") as file:
-                self.posts = list(map(int, file.read().split("|")))[:560]
+                self.posts = list(map(int, file.read().split("|")))
         else:
             posts = get_disk_posts(clean=True)
             tokenized_posts = tokenizer.tokenize(posts)
@@ -45,6 +45,7 @@ class PostsDataset(Dataset):
 
         self.max_context_length = max_context_length
         self.device = device
+        self.step = max_context_length/2 if step is None else step
 
     def save_to_cache(self, cache):
         with open('../data/{}.txt'.format(cache), 'w+', encoding="utf-8") as file:

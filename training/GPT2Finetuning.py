@@ -5,7 +5,10 @@ import numpy as np
 import torch
 from DataGenerator import get_data_loaders
 from pytorch_transformers import (GPT2LMHeadModel, GPT2Tokenizer, AdamW, WEIGHTS_NAME, CONFIG_NAME)
+from torch.utils.tensorboard import SummaryWriter
+from IgniteTraining import sample_sequence
 
+writer = SummaryWriter()
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
@@ -56,11 +59,11 @@ def evaluate(model, tokenizer, eval_data_loader, device, training_loss, previous
         save(model, tokenizer, output_directory, "best")
 
     output_eval_file = os.path.join(output_directory, "eval_results.txt")
-    with open(output_eval_file, "w") as writer:
+    with open(output_eval_file, "w") as output_eval:
         logger.info("***** Eval results *****")
         for key in sorted(result.keys()):
             logger.info("  %s = %s", key, str(result[key]))
-            writer.write("%s = %s\n" % (key, str(result[key])))
+            output_eval.write("%s = %s\n" % (key, str(result[key])))
 
     return min(eval_loss, previous_loss)
 
@@ -125,6 +128,11 @@ def main():
 
             if step % 1000 == 0:
                 save(model, tokenizer, output_directory)
+
+            if step % 1 == 0:
+                writer.add_scalar("Average loss", exp_average_loss)
+                writer.add_histogram("Language model logits", losses[1])
+                writer.add_text("Sample sequence", sample_sequence(model, tokenizer, device))
 
         previous_loss = evaluate(model, tokenizer, eval_data_loader, device, tr_loss, previous_loss,
                                  nb_tr_steps, output_directory)
