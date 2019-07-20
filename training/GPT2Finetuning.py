@@ -18,7 +18,21 @@ def accuracy(out, labels):
     return np.sum(outputs == labels)
 
 
-def evaluate(model, eval_data_loader, device, training_loss, nb_training_steps, output_directory="runs"):
+def save(model, tokenizer, output_directory, name=None):
+    if name:
+        output_directory = output_directory + "_" + name
+        if not os.path.exists(output_directory):
+            os.makedirs(output_directory)
+    # If we save using the predefined names, we can load using `from_pretrained`
+    output_model_file = os.path.join(output_directory, WEIGHTS_NAME)
+    output_config_file = os.path.join(output_directory, CONFIG_NAME)
+
+    torch.save(model.state_dict(), output_model_file)
+    model.config.to_json_file(output_config_file)
+    tokenizer.save_vocabulary(output_directory)
+
+
+def evaluate(model, tokenizer, eval_data_loader, device, training_loss, previous_loss, nb_training_steps, output_directory="runs"):
     model.eval()
     eval_loss = 0
     nb_eval_steps, nb_eval_examples = 0, 0
@@ -26,7 +40,7 @@ def evaluate(model, eval_data_loader, device, training_loss, nb_training_steps, 
         batch = tuple(t.to(device) for t in batch)
         input_ids, labels = batch
         with torch.no_grad():
-            _, mc_loss = model(input_ids, labels=labels)
+            mc_loss = model(input_ids, labels=labels)[0]
 
         eval_loss += mc_loss.mean().item()
         nb_eval_examples += input_ids.size(0)
@@ -37,12 +51,18 @@ def evaluate(model, eval_data_loader, device, training_loss, nb_training_steps, 
     result = {'eval_loss': eval_loss,
               'train_loss': train_loss}
 
+    if eval_loss < previous_loss:
+        print(eval_loss, "<", previous_loss, "saving best model.")
+        save(model, tokenizer, output_directory, "best")
+
     output_eval_file = os.path.join(output_directory, "eval_results.txt")
     with open(output_eval_file, "w") as writer:
         logger.info("***** Eval results *****")
         for key in sorted(result.keys()):
             logger.info("  %s = %s", key, str(result[key]))
             writer.write("%s = %s\n" % (key, str(result[key])))
+
+    return min(eval_loss, previous_loss)
 
 
 def main():
@@ -79,9 +99,10 @@ def main():
 
     optimizer = AdamW(optimizer_grouped_parameters, lr=learning_rate, weight_decay=weight_decay)
 
-
     # Training the model
     model.train()
+    previous_loss = float("inf")
+
     for _ in trange(num_train_epochs, desc="Epoch"):
         tr_loss = 0
         nb_tr_steps = 0
@@ -102,20 +123,13 @@ def main():
             nb_tr_steps += 1
             tqdm_bar.desc = "Training loss: {:.2e} lr: {:.2e}".format(exp_average_loss, optimizer.defaults["lr"])
 
-    # Save a trained model, configuration and tokenizer
-    model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
+            if step % 1000 == 0:
+                save(model, tokenizer, output_directory)
 
-    # If we save using the predefined names, we can load using `from_pretrained`
-    output_model_file = os.path.join(output_directory, WEIGHTS_NAME)
-    output_config_file = os.path.join(output_directory, CONFIG_NAME)
+        previous_loss = evaluate(model, tokenizer, eval_data_loader, device, tr_loss, previous_loss,
+                                 nb_tr_steps, output_directory)
 
-    torch.save(model_to_save.state_dict(), output_model_file)
-    model_to_save.config.to_json_file(output_config_file)
-    tokenizer.save_vocabulary(output_directory)
-
-    # Load a trained model and vocabulary that you have fine-tuned
-    model = GPT2LMHeadModel.from_pretrained(output_directory)
-    model.to(device)
+    save(model, tokenizer, output_directory)
 
     # Evaluating
     evaluate(model, eval_data_loader, device, tr_loss, nb_tr_steps, output_directory)

@@ -37,7 +37,7 @@ class PostsDataset(Dataset):
     def __init__(self, tokenizer, cache=None, max_context_length=512, device='cpu'):
         if cache:
             with open('../data/{}.txt'.format(cache), 'r', encoding="utf-8") as file:
-                self.posts = list(map(int, file.read().split("|")))[:550]
+                self.posts = list(map(int, file.read().split("|")))[:560]
         else:
             posts = get_disk_posts(clean=True)
             tokenized_posts = tokenizer.tokenize(posts)
