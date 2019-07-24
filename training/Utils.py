@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 from tqdm import trange
+import git, json
 
 
 def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, filter_value=-float('Inf')):
@@ -71,3 +72,14 @@ def log_tensorboard(model, writer, global_step, exp_average_loss, tokenizer, dev
 
         writer.add_scalar(tag="grad_mean/" + param_name, scalar_value=param.grad.data.mean(), global_step=global_step)
         writer.add_scalar(tag="grad_std/" + param_name, scalar_value=param.grad.data.std(), global_step=global_step)
+
+
+def git_log():
+    repo = git.Repo(search_parent_directories=True)
+    repo_infos = {
+        'repo_id': str(repo),
+        'repo_sha': str(repo.head.object.hexsha),
+        'repo_branch': str(repo.active_branch)
+    }
+
+    return json.dumps(repo_infos)

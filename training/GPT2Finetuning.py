@@ -6,9 +6,11 @@ import torch
 from DataGenerator import get_data_loaders
 from pytorch_transformers import (GPT2LMHeadModel, GPT2Tokenizer, AdamW, WEIGHTS_NAME, CONFIG_NAME)
 from torch.utils.tensorboard import SummaryWriter
-from Utils import log_tensorboard
+from Utils import log_tensorboard, git_log
 
 writer = SummaryWriter()
+
+writer.add_text(git_log())
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
