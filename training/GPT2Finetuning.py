@@ -6,7 +6,7 @@ import torch
 from DataGenerator import get_data_loaders
 from pytorch_transformers import (GPT2LMHeadModel, GPT2Tokenizer, AdamW, WEIGHTS_NAME, CONFIG_NAME)
 from torch.utils.tensorboard import SummaryWriter
-from IgniteTraining import sample_sequence
+from Utils import sample_sequence
 
 writer = SummaryWriter()
 
@@ -39,14 +39,13 @@ def evaluate(model, tokenizer, eval_data_loader, device, training_loss, previous
     model.eval()
     eval_loss = 0
     nb_eval_steps, nb_eval_examples = 0, 0
-    for batch in tqdm(eval_data_loader, desc="Evaluating"):
-        batch = tuple(t.to(device) for t in batch)
-        input_ids, labels = batch
+
+    for batch_element in tqdm(eval_data_loader, desc="Evaluating"):
         with torch.no_grad():
-            mc_loss = model(input_ids, labels=labels)[0]
+            mc_loss = model(batch_element, labels=batch_element)[0]
 
         eval_loss += mc_loss.mean().item()
-        nb_eval_examples += input_ids.size(0)
+        nb_eval_examples += batch_element.size(0)
         nb_eval_steps += 1
 
     eval_loss = eval_loss / nb_eval_steps
@@ -70,10 +69,11 @@ def evaluate(model, tokenizer, eval_data_loader, device, training_loss, previous
 
 def main():
     output_directory = "dofus"
-    num_train_epochs = 1
-    train_batch_size = 8
-    eval_batch_size = 16
-    learning_rate = 6.25-5
+    num_train_epochs = 3
+    train_batch_size = 4
+    eval_batch_size = 2
+    max_context_length = 512
+    learning_rate = 6.25e-5
     weight_decay = 0.01
 
     nb_tr_steps, tr_loss, exp_average_loss = 0, 0, None
@@ -90,7 +90,7 @@ def main():
     model = GPT2LMHeadModel.from_pretrained("gpt2")
     model.to(device)
 
-    train_data_loader, eval_data_loader = get_data_loaders(tokenizer, train_batch_size, eval_batch_size)
+    train_data_loader, eval_data_loader = get_data_loaders(tokenizer, train_batch_size, eval_batch_size, max_context_length=max_context_length, device=device)
 
     # Preparing the optimizer
     param_optimizer = list(model.named_parameters())
@@ -98,7 +98,7 @@ def main():
     optimizer_grouped_parameters = [
         {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
         {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
-        ]
+    ]
 
     optimizer = AdamW(optimizer_grouped_parameters, lr=learning_rate, weight_decay=weight_decay)
 
@@ -111,10 +111,9 @@ def main():
         nb_tr_steps = 0
         tqdm_bar = tqdm(train_data_loader, desc="Training")
 
-        for step, batch in enumerate(tqdm_bar):
-            batch = tuple(t.to(device) for t in batch)
-            input_ids, labels = batch
-            losses = model(input_ids, labels=labels)
+        for step, batch_element in enumerate(tqdm_bar):
+            logger.info(batch_element.size())
+            losses = model(batch_element, labels=batch_element)
             loss = losses[0]
 
             loss.backward()
@@ -129,13 +128,13 @@ def main():
             if step % 1000 == 0:
                 save(model, tokenizer, output_directory)
 
-            if step % 1 == 0:
-                writer.add_scalar("Average loss", exp_average_loss)
-                writer.add_histogram("Language model logits", losses[1])
-                writer.add_text("Sample sequence", sample_sequence(model, tokenizer, device))
+            if step % 100 == 0:
+                writer.add_scalar("loss/Average_loss", float(exp_average_loss))
+                writer.add_text("Sample_sequence", sample_sequence(model, tokenizer, device))
 
         previous_loss = evaluate(model, tokenizer, eval_data_loader, device, tr_loss, previous_loss,
                                  nb_tr_steps, output_directory)
+        model.train()
 
     save(model, tokenizer, output_directory)
 

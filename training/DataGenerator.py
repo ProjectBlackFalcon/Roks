@@ -37,7 +37,8 @@ class PostsDataset(Dataset):
     def __init__(self, tokenizer, cache=None, max_context_length=512, device='cpu', step=None):
         if cache:
             with open('../data/{}.txt'.format(cache), 'r', encoding="utf-8") as file:
-                self.posts = list(map(int, file.read().split("|")))
+                file = file.read().split("|")[:-1]
+                self.posts = list(map(int, file))
         else:
             posts = get_disk_posts(clean=True)
             tokenized_posts = tokenizer.tokenize(posts)
@@ -52,18 +53,24 @@ class PostsDataset(Dataset):
             file.write(str('|'.join(str(post) for post in self.posts)))
 
     def __len__(self):
-        print(len(self.posts))
-        return len(self.posts) - self.max_context_length - 1
+        return int(len(self.posts)/self.max_context_length) + 1
 
     def __getitem__(self, item):
-        return (
-            torch.tensor(self.posts[item:item+self.max_context_length]),
-            torch.tensor(self.posts[item+1:item+self.max_context_length+1])
+        return torch.tensor(
+            self.posts[item * self.max_context_length:item * self.max_context_length + self.max_context_length],
+            device=self.device
         )
 
 
-def get_data_loaders(tokenizer, train_batch_size, val_batch_size, validation_split=0.2, random_seed=0):
-    dataset = PostsDataset(tokenizer, cache="dataset_cache")
+def get_data_loaders(tokenizer,
+                     train_batch_size,
+                     val_batch_size,
+                     device='cpu',
+                     validation_split=0.2,
+                     random_seed=0,
+                     max_context_length=512):
+
+    dataset = PostsDataset(tokenizer, cache="dataset_cache", device=device, max_context_length=max_context_length)
     dataset_size = len(dataset)
 
     indices = list(range(dataset_size))
@@ -78,7 +85,5 @@ def get_data_loaders(tokenizer, train_batch_size, val_batch_size, validation_spl
 
     train_loader = DataLoader(dataset, batch_size=train_batch_size, sampler=train_sampler)
     val_loader = DataLoader(dataset, batch_size=val_batch_size, sampler=valid_sampler)
-
-    print("Returning data")
 
     return train_loader, val_loader
