@@ -3,14 +3,15 @@ import os
 from tqdm import tqdm, trange
 import numpy as np
 import torch
+from torch.optim import lr_scheduler
 from DataGenerator import get_data_loaders
 from pytorch_transformers import (GPT2LMHeadModel, GPT2Tokenizer, AdamW, WEIGHTS_NAME, CONFIG_NAME)
 from torch.utils.tensorboard import SummaryWriter
-from Utils import log_tensorboard, git_log
+from Utils import log_tensorboard
 
 writer = SummaryWriter()
 
-writer.add_text(git_log())
+# writer.add_text(git_log())
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
@@ -37,7 +38,7 @@ def save(model, tokenizer, output_directory, name=None):
     tokenizer.save_vocabulary(output_directory)
 
 
-def evaluate(model, tokenizer, eval_data_loader, device, training_loss, previous_loss, nb_training_steps, output_directory="runs"):
+def evaluate(model, tokenizer, eval_data_loader, training_loss, previous_loss, nb_training_steps, output_directory="runs"):
     model.eval()
     eval_loss = 0
     nb_eval_steps, nb_eval_examples = 0, 0
@@ -104,6 +105,7 @@ def main():
     ]
 
     optimizer = AdamW(optimizer_grouped_parameters, lr=learning_rate, weight_decay=weight_decay)
+    lr_scheduler.ExponentialLR(optimizer, 0.5)
 
     # Training the model
     model.train()
@@ -136,7 +138,7 @@ def main():
 
             optimizer.zero_grad()
 
-        previous_loss = evaluate(model, tokenizer, eval_data_loader, device, tr_loss, previous_loss,
+        previous_loss = evaluate(model, tokenizer, eval_data_loader, tr_loss, previous_loss,
                                  nb_tr_steps, output_directory)
         model.train()
 
