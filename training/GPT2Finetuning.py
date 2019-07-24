@@ -6,7 +6,7 @@ import torch
 from DataGenerator import get_data_loaders
 from pytorch_transformers import (GPT2LMHeadModel, GPT2Tokenizer, AdamW, WEIGHTS_NAME, CONFIG_NAME)
 from torch.utils.tensorboard import SummaryWriter
-from Utils import sample_sequence
+from Utils import log_tensorboard
 
 writer = SummaryWriter()
 
@@ -77,6 +77,7 @@ def main():
     weight_decay = 0.01
 
     nb_tr_steps, tr_loss, exp_average_loss = 0, 0, None
+    global_step = 0
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     n_gpu = torch.cuda.device_count()
@@ -123,14 +124,14 @@ def main():
             tr_loss += loss.item()
             exp_average_loss = loss.item() if exp_average_loss is None else 0.7*exp_average_loss+0.3*loss.item()
             nb_tr_steps += 1
+            global_step += 1
             tqdm_bar.desc = "Training loss: {:.2e} lr: {:.2e}".format(exp_average_loss, optimizer.defaults["lr"])
 
             if step % 1000 == 0:
                 save(model, tokenizer, output_directory)
 
             if step % 100 == 0:
-                writer.add_scalar("loss/Average_loss", float(exp_average_loss))
-                writer.add_text("Sample_sequence", sample_sequence(model, tokenizer, device))
+                log_tensorboard(model, writer, global_step, exp_average_loss, tokenizer, device)
 
         previous_loss = evaluate(model, tokenizer, eval_data_loader, device, tr_loss, previous_loss,
                                  nb_tr_steps, output_directory)
