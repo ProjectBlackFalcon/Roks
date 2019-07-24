@@ -56,10 +56,9 @@ class PostsDataset(Dataset):
         return int(len(self.posts)/self.max_context_length) + 1
 
     def __getitem__(self, item):
-        return torch.tensor(
-            self.posts[item * self.max_context_length:item * self.max_context_length + self.max_context_length],
-            device=self.device
-        )
+        item = self.posts[item * self.max_context_length:item * self.max_context_length + self.max_context_length]
+        item += [-1] * (self.max_context_length - len(item))
+        return torch.tensor(item, device=self.device)
 
 
 def get_data_loaders(tokenizer,

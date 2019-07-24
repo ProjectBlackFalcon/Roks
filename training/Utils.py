@@ -45,7 +45,7 @@ def sample_sequence(model, tokenizer, device, length=10, context=None, temperatu
     output = context
     past = None
     with torch.no_grad():
-        for _ in trange(length):
+        for _ in range(length):
             logits, past = model(prev, past=past)
             logits = top_k_top_p_filtering(logits[:, -1, :] / temperature, top_p=0.9, top_k=40)
             log_probs = F.softmax(logits, dim=-1)

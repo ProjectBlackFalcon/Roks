@@ -119,7 +119,6 @@ def main():
 
             loss.backward()
             optimizer.step()
-            optimizer.zero_grad()
 
             tr_loss += loss.item()
             exp_average_loss = loss.item() if exp_average_loss is None else 0.7*exp_average_loss+0.3*loss.item()
@@ -132,6 +131,8 @@ def main():
 
             if step % 100 == 0:
                 log_tensorboard(model, writer, global_step, exp_average_loss, tokenizer, device)
+
+            optimizer.zero_grad()
 
         previous_loss = evaluate(model, tokenizer, eval_data_loader, device, tr_loss, previous_loss,
                                  nb_tr_steps, output_directory)
