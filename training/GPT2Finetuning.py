@@ -71,7 +71,7 @@ def evaluate(model, tokenizer, eval_data_loader, training_loss, previous_loss, n
 
 
 def main():
-    output_directory = "dofus"
+    output_directory = "dofus-v2"
     num_train_epochs = 3
     train_batch_size = 4
     eval_batch_size = 2

@@ -34,31 +34,26 @@ def get_tensors_from_tokens(tokens, max_size=512):
 
 
 class PostsDataset(Dataset):
-    def __init__(self, tokenizer, cache=None, max_context_length=512, device='cpu', step=None):
-        if cache:
-            with open('../data/{}.txt'.format(cache), 'r', encoding="utf-8") as file:
-                file = file.read().split("|")[:-1]
-                self.posts = list(map(int, file))
-        else:
-            posts = get_disk_posts(clean=True)
-            tokenized_posts = tokenizer.tokenize(posts)
-            self.posts = tokenizer.convert_tokens_to_ids(tokenized_posts)
+    def __init__(self, max_context_length=512, device='cpu'):
+        with open("../data/tokenized_posts.txt") as file:
+            file = file.read().split("\n")
+
+        self.dataset_examples = []
+
+        for item in file:
+            item = item.split('|')
+            while len(item) > 0:
+                self.dataset_examples.append(item[:max_context_length])
+                item = item[max_context_length:]
 
         self.max_context_length = max_context_length
         self.device = device
-        self.step = max_context_length/2 if step is None else step
-
-    def save_to_cache(self, cache):
-        with open('../data/{}.txt'.format(cache), 'w+', encoding="utf-8") as file:
-            file.write(str('|'.join(str(post) for post in self.posts)))
 
     def __len__(self):
-        return int(len(self.posts)/self.max_context_length) + 1
+        return len(self.dataset_examples)
 
     def __getitem__(self, item):
-        item = self.posts[item * self.max_context_length:item * self.max_context_length + self.max_context_length]
-        item += [-1] * (self.max_context_length - len(item))
-        return torch.tensor(item, device=self.device)
+        return [-1] * (self.max_context_length - len(self.dataset_examples[item])) + self.dataset_examples[item]
 
 
 def get_data_loaders(tokenizer,
@@ -69,7 +64,7 @@ def get_data_loaders(tokenizer,
                      random_seed=0,
                      max_context_length=512):
 
-    dataset = PostsDataset(tokenizer, cache="dataset_cache", device=device, max_context_length=max_context_length)
+    dataset = PostsDataset(device=device, max_context_length=max_context_length)
     dataset_size = len(dataset)
 
     indices = list(range(dataset_size))

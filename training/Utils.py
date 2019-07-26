@@ -1,7 +1,5 @@
 import torch
 import torch.nn.functional as F
-import git
-import json
 
 
 def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, filter_value=-float('Inf')):
