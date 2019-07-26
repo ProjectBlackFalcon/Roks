@@ -56,9 +56,7 @@ def evaluate(model, tokenizer, eval_data_loader, training_loss, previous_loss, n
     result = {'eval_loss': eval_loss,
               'train_loss': train_loss}
 
-    if eval_loss < previous_loss:
-        print(eval_loss, "<", previous_loss, "saving best model.")
-        save(model, tokenizer, output_directory, "best")
+    save(model, tokenizer, output_directory, str(nb_training_steps))
 
     output_eval_file = os.path.join(output_directory, "eval_results.txt")
     with open(output_eval_file, "w") as output_eval:
@@ -117,26 +115,28 @@ def main():
         tqdm_bar = tqdm(train_data_loader, desc="Training")
 
         for step, batch_element in enumerate(tqdm_bar):
-            logger.info(batch_element.size())
-            losses = model(batch_element, labels=batch_element)
-            loss = losses[0]
+            try:
+                losses = model(batch_element, labels=batch_element)
+                loss = losses[0]
 
-            loss.backward()
-            optimizer.step()
+                loss.backward()
+                optimizer.step()
 
-            tr_loss += loss.item()
-            exp_average_loss = loss.item() if exp_average_loss is None else 0.7*exp_average_loss+0.3*loss.item()
-            nb_tr_steps += 1
-            global_step += 1
-            tqdm_bar.desc = "Training loss: {:.2e} lr: {:.2e}".format(exp_average_loss, optimizer.defaults["lr"])
+                tr_loss += loss.item()
+                exp_average_loss = loss.item() if exp_average_loss is None else 0.7 * exp_average_loss + 0.3 * loss.item()
+                nb_tr_steps += 1
+                global_step += 1
+                tqdm_bar.desc = "Training loss: {:.2e} lr: {:.2e}".format(exp_average_loss, optimizer.defaults["lr"])
 
-            if step % 1000 == 0:
-                save(model, tokenizer, output_directory)
+                if step % 1000 == 0:
+                    save(model, tokenizer, output_directory)
 
-            if step % 100 == 0:
-                log_tensorboard(model, writer, global_step, exp_average_loss, tokenizer, device)
+                if step % 1000 == 0:
+                    log_tensorboard(model, writer, global_step, exp_average_loss, tokenizer, device)
 
-            optimizer.zero_grad()
+                optimizer.zero_grad()
+            except RuntimeError:
+                print("There was a runtime error with batch:", batch_element)
 
         previous_loss = evaluate(model, tokenizer, eval_data_loader, tr_loss, previous_loss,
                                  nb_tr_steps, output_directory)

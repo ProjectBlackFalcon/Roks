@@ -59,7 +59,7 @@ def sample_sequence(model, tokenizer, device, length=10, context=None, temperatu
 # this has to be one of the ugliest functions I ever wrote. Class-based refactor is **needed**
 def log_tensorboard(model, writer, global_step, exp_average_loss, tokenizer, device):
     writer.add_scalar("loss/Average_loss", float(exp_average_loss), global_step)
-    writer.add_text("Sample_sequence", sample_sequence(model, tokenizer, device), global_step)
+    writer.add_text("Sample_sequence", sample_sequence(model, tokenizer, device, length=30), global_step)
 
     for param_name, param in model.named_parameters():
         writer.add_scalar(tag='parameter_mean/' + param_name, scalar_value=param.data.mean(), global_step=global_step)
