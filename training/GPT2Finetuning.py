@@ -44,12 +44,15 @@ def evaluate(model, tokenizer, eval_data_loader, training_loss, previous_loss, n
     nb_eval_steps, nb_eval_examples = 0, 0
 
     for batch_element in tqdm(eval_data_loader, desc="Evaluating"):
-        with torch.no_grad():
-            mc_loss = model(batch_element, labels=batch_element)[0]
+        try:
+            with torch.no_grad():
+                mc_loss = model(batch_element, labels=batch_element)[0]
 
-        eval_loss += mc_loss.mean().item()
-        nb_eval_examples += batch_element.size(0)
-        nb_eval_steps += 1
+            eval_loss += mc_loss.mean().item()
+            nb_eval_examples += batch_element.size(0)
+            nb_eval_steps += 1
+        except RuntimeError:
+            print("There was a runtime error with batch:", batch_element)
 
     eval_loss = eval_loss / nb_eval_steps
     train_loss = training_loss / nb_training_steps

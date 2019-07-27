@@ -52,7 +52,7 @@ class PostsDataset(Dataset):
 
 		for item in file:
 			item = list(map(int, filter(lambda i: len(i) > 0, item.split('|'))))
-			while len(item) > 0:
+			while len(item) > 40:
 				self.dataset_examples.append(item[:max_context_length])
 				item = item[max_context_length:]
 
