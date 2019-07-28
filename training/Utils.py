@@ -72,12 +72,9 @@ def log_tensorboard(model, writer, global_step, exp_average_loss, tokenizer, dev
         writer.add_scalar(tag="grad_std/" + param_name, scalar_value=param.grad.data.std(), global_step=global_step)
 
 
-# def git_log():
-#     repo = git.Repo(path="../.git", search_parent_directories=True)
-#     repo_infos = {
-#         'repo_id': str(repo),
-#         'repo_sha': str(repo.head.object.hexsha),
-#         'repo_branch': str(repo.active_branch)
-#     }
-#
-#     return json.dumps(repo_infos)
+def gpu_information():
+    print(torch.cuda.is_available())
+
+
+if __name__ == "__main__":
+    gpu_information()

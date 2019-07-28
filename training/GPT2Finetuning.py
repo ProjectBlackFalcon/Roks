@@ -95,7 +95,7 @@ def main():
     model = GPT2LMHeadModel.from_pretrained("gpt2")
     model.to(device)
 
-    train_data_loader, eval_data_loader = get_data_loaders(tokenizer, train_batch_size, eval_batch_size, max_context_length=max_context_length, device=device)
+    train_data_loader, eval_data_loader = get_data_loaders(train_batch_size, eval_batch_size, max_context_length=max_context_length, device=device)
 
     # Preparing the optimizer
     param_optimizer = list(model.named_parameters())

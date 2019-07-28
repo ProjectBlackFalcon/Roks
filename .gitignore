@@ -2,6 +2,7 @@
 /.idea
 /data/*.txt
 /data/clean_posts.txt
+/data/*.py
 .env
 /self_training
 /tests
