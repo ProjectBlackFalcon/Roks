@@ -38,7 +38,7 @@ def save(model, tokenizer, output_directory, name=None):
     tokenizer.save_vocabulary(output_directory)
 
 
-def evaluate(model, tokenizer, eval_data_loader, training_loss, previous_loss, nb_training_steps, output_directory="runs"):
+def evaluate(model, tokenizer, eval_data_loader, training_loss, previous_loss, nb_training_steps, nb_global_steps, output_directory="runs"):
     model.eval()
     eval_loss = 0
     nb_eval_steps, nb_eval_examples = 0, 0
@@ -59,7 +59,7 @@ def evaluate(model, tokenizer, eval_data_loader, training_loss, previous_loss, n
     result = {'eval_loss': eval_loss,
               'train_loss': train_loss}
 
-    save(model, tokenizer, output_directory, str(nb_training_steps))
+    save(model, tokenizer, output_directory, str(nb_eval_steps))
 
     output_eval_file = os.path.join(output_directory, "eval_results.txt")
     with open(output_eval_file, "w") as output_eval:
@@ -142,13 +142,13 @@ def main():
                 print("There was a runtime error with batch:", batch_element)
 
         previous_loss = evaluate(model, tokenizer, eval_data_loader, tr_loss, previous_loss,
-                                 nb_tr_steps, output_directory)
+                                 nb_tr_steps, global_step, output_directory)
         model.train()
 
     save(model, tokenizer, output_directory)
 
     # Evaluating
-    evaluate(model, eval_data_loader, device, tr_loss, nb_tr_steps, output_directory)
+    evaluate(model, eval_data_loader, device, tr_loss, nb_tr_steps, global_step, output_directory)
 
 
 if __name__ == '__main__':
